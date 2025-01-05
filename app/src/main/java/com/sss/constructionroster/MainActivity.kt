@@ -183,7 +183,7 @@ data class ImageItem(
 )
 
 val sampleImages = listOf(
-    ImageItem(R.drawable.sample_image1, "Sample 1"),
+    ImageItem(R.drawable.madhu_b, "Madhu B"),
     ImageItem(R.drawable.sample_image2, "Sample 2"),
     ImageItem(R.drawable.sample_image3, "Sample 3"),
     ImageItem(R.drawable.sample_image4, "Sample 4"),
