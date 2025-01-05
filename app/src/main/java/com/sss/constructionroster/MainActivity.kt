@@ -93,11 +93,24 @@ class MainActivity : ComponentActivity() {
                                     onSubmit = { dateDetails ->
                                         selectedMonthImage = selectedMonthImage?.copy(
                                             dayEntries = selectedMonthImage?.dayEntries?.apply {
-                                                put(dateDetails.date.dayOfMonth, DayEntry(
-                                                    date = dateDetails.date,
-                                                    amountPaid = dateDetails.amountPaid,
-                                                    isAbsent = dateDetails.isAbsent
-                                                ))
+                                                if (dateDetails.isAbsent) {
+                                                    // If marked as absent, store with empty amount paid
+                                                    put(dateDetails.date.dayOfMonth, DayEntry(
+                                                        date = dateDetails.date,
+                                                        amountPaid = "",
+                                                        isAbsent = true
+                                                    ))
+                                                } else if (dateDetails.amountPaid.isNotBlank()) {
+                                                    // If amount paid is provided, store the entry
+                                                    put(dateDetails.date.dayOfMonth, DayEntry(
+                                                        date = dateDetails.date,
+                                                        amountPaid = dateDetails.amountPaid,
+                                                        isAbsent = false
+                                                    ))
+                                                } else {
+                                                    // If no amount and not absent, remove the entry
+                                                    remove(dateDetails.date.dayOfMonth)
+                                                }
                                             } ?: mutableMapOf()
                                         )
                                         selectedMonthImage?.let { paymentDataManager.saveMonthImageSelection(it) }
@@ -700,7 +713,7 @@ private fun DayCell(
             containerColor = when {
                 dayEntry?.isAbsent == true -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
                 dayEntry != null -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-                else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) // Pleasant light background
+                else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             }
         ),
         shape = RoundedCornerShape(4.dp)
@@ -722,13 +735,22 @@ private fun DayCell(
                 ),
                 fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
             )
-            if (dayEntry != null && !dayEntry.isAbsent) {
-                Text(
-                    text = "₹${dayEntry.amountPaid}",
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    color = MaterialTheme.colorScheme.primary
-                )
+            if (dayEntry != null) {
+                if (dayEntry.isAbsent) {
+                    Text(
+                        text = "Absent",
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                } else if (dayEntry.amountPaid.isNotBlank()) {
+                    Text(
+                        text = "₹${dayEntry.amountPaid}",
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }
@@ -948,10 +970,14 @@ fun DateDetailsScreen(
         ) {
             Checkbox(
                 checked = isAbsent,
-                onCheckedChange = { 
-                    isAbsent = it
-                    if (it) {
-                        amountPaid = "" // Clear amount paid when marked as absent
+                onCheckedChange = { isChecked -> 
+                    isAbsent = isChecked
+                    if (isChecked) {
+                        // Clear amount paid when marked as absent
+                        amountPaid = ""
+                    } else {
+                        // When unchecking absent, initialize with default amount per day
+                        amountPaid = amountPerDay
                     }
                 }
             )
